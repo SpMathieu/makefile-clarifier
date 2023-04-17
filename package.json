@@ -1,8 +1,9 @@
 {
   "name": "makefile-clarifier",
   "displayName": "Makefile clarifier",
-  "description": "",
-  "version": "0.0.1",
+  "publisher": "SpMathieu",
+  "description": "allow user to get var value when it's hovered",
+  "version": "0.0.2",
   "repository": {
 		"type": "git",
 		"url": "https://github.com/SpMathieu/makefile-clarifier"

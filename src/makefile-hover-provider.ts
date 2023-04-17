@@ -38,7 +38,9 @@ export class MakefileHoverProvider implements vscode.HoverProvider {
           let WPLength = vscode.workspace.workspaceFolders[0].uri.path.length + 1;
           updateContext = await mfSeeker.generateContext(document, newContext);
           index = mfSeeker.matchingIndex(updateContext, name);
-          if (index == -1) {
+          if(name == 'PWD'){
+            md.appendCodeblock(updateContext.source.substring(WPLength) + " : " + updateContext.source.substring(0,updateContext.source.lastIndexOf('/')), document.languageId)
+          } else if (index == -1) {
             md.appendCodeblock(updateContext.source.substring(WPLength) + " : " + name + " IS UNDEFINED IN THIS CONTEXT", document.languageId);
           } else {
             variableInContext = updateContext.context[index];

@@ -55,6 +55,9 @@ export function identifyVariable(
             dollarPosition = i;
             break;
         }
+        if(line.charAt(i) == ' '){
+            break;
+        }
         i--;
     }
     if (dollarPosition == null) {
@@ -64,6 +67,9 @@ export function identifyVariable(
     while (i < line.length) {
         if (line.charAt(i) == ')') {
             endBracketPosition = i;
+            break;
+        }
+        if(line.charAt(i) == ' '){
             break;
         }
         i++;
@@ -350,7 +356,9 @@ export function unrollVariable(
         let varName = (regVar.exec(recipe) as RegExpExecArray)[0];
         let varShort = varName.substring(2,varName.length-1);
         let index = matchingIndex(fileContext, varShort);
-        if(index !== -1){
+        if(varShort == "PWD"){
+            recipe = recipe.replace(varName,fileContext.source.substring(0,fileContext.source.lastIndexOf("/")));
+        }else if(index !== -1){
             recipe = recipe.replace(varName,fileContext.context[index].recipe);
         }else{
             recipe = recipe.replace(varName,'');
