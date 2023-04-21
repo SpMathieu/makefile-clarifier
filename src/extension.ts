@@ -4,7 +4,7 @@ import * as vscode from 'vscode';
 import * as mkProvider from './makefile-hover-provider';
 // import VerilogHoverProvider from './verilog-hover-provider';
 
-
+import { exec } from 'child_process';
 
 
 // this method is called when your extension is activated
@@ -16,7 +16,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 
 	let makefileContext = new mkProvider.MakefileContext();
-	
+
 
 	// Update on editor switch.
 	context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(
@@ -27,7 +27,7 @@ export function activate(context: vscode.ExtensionContext) {
 			if (vscode.workspace.workspaceFolders === undefined) {
 				return;
 			}
-			if(textEditor.document.languageId !== 'makefile'){
+			if (textEditor.document.languageId !== 'makefile') {
 				return;
 			}
 			makefileContext.updateContext();
@@ -35,7 +35,7 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	));
 
-	if(typeof(vscode.window.activeTextEditor) !== undefined){
+	if (typeof (vscode.window.activeTextEditor) !== undefined) {
 		makefileContext.updateContext();
 	}
 

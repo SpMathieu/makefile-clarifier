@@ -3,7 +3,7 @@
   "displayName": "Makefile clarifier",
   "publisher": "SpMathieu",
   "description": "allow user to get var value when it's hovered",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "repository": {
 		"type": "git",
 		"url": "https://github.com/SpMathieu/makefile-clarifier"
@@ -22,18 +22,6 @@
 				"id": "makefile",
 				"extensions": [
 					".mk"
-				]
-			},
-      {
-				"id": "verilog",
-				"extensions": [
-					".v"
-				]
-			},
-			{
-				"id": "systemverilog",
-				"extensions": [
-					".sv"
 				]
 			}
 		]

@@ -115,7 +115,7 @@ export async function generateContext(
         line = document.lineAt(i).text;
         i++;
         if (regInc.test(line)) {
-            let path = includePath(document.uri.path.substring(0, document.uri.path.lastIndexOf('/')), line.replace(regInc, ''));
+            let path = includePath(fileContext.source.substring(0, fileContext.source.lastIndexOf('/')), line.replace(regInc, ''));
             let includeDoc = await vscode.workspace.openTextDocument(path);
             context = await generateContext(includeDoc, context);
         } else if (regQM.test(line)) {
@@ -281,7 +281,8 @@ export function includePath(
         if (pathAddOn.charAt(0) !== '/') {
             pathAddOn = '/' + pathAddOn;
         }
-        return newPath + pathAddOn;
+        newPath += pathAddOn;
+        return newPath.replace(" ", "");
     }
 
 }
@@ -310,7 +311,8 @@ export function matchingIndex(
 }
 
 export async function findEndingContext(
-    documentSource: vscode.TextDocument
+    documentSource: vscode.TextDocument,
+    sourcePath: string
 ): Promise<endingContext> {
     let docSourcePath = documentSource.uri.path;
     let activeDocPath = vscode.window.activeTextEditor?.document.uri.path;
@@ -321,7 +323,7 @@ export async function findEndingContext(
         let line = documentSource.lineAt(i).text;
         if (regInc.test(line)) {
             let includePathVar = line.replace(regInc, '');
-            let path = includePath(docSourcePath.substring(0, docSourcePath.lastIndexOf('/')), includePathVar);
+            let path = includePath(sourcePath, includePathVar);
             if (path == activeDocPath) {
                 return {
                     filePath: docSourcePath,
@@ -330,7 +332,7 @@ export async function findEndingContext(
             } else {
                 if(fs.existsSync(path)){
                     let nextDoc = await vscode.workspace.openTextDocument(vscode.Uri.file(path));
-                    let output = await findEndingContext(nextDoc);
+                    let output = await findEndingContext(nextDoc, sourcePath);
                     if (output.line !== -1) {
                         return output;
                     }

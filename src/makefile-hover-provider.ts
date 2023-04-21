@@ -90,7 +90,7 @@ export class MakefileContext {
     let makefiles = await vscode.workspace.findFiles('**/Makefile', null, 1000);
     for (const makefileURI of makefiles) {
       let makefile = await vscode.workspace.openTextDocument(makefileURI);
-      let endingContext = await mfSeeker.findEndingContext(makefile);
+      let endingContext = await mfSeeker.findEndingContext(makefile, makefileURI.path.substring(0,makefileURI.path.lastIndexOf("/")));
       if (endingContext.line !== -1) {
         let context: mfSeeker.FileContext = {
           source: makefileURI.path,
