@@ -22,15 +22,23 @@ type Definition = {
     definitionLengths: Array<number>
 };
 
-export type endingContext = {
+export type EndingContext = {
     filePath: string;
     line: number;
 };
 
 export type FileContext = {
     source: string,
-    endingContext: endingContext,
+    endingContext: EndingContext,
     context: Array<MakefileVariable>,
+    isGenerated: boolean
+};
+
+export type FileContext2 = {
+    source: string,
+    endingContext: EndingContext,
+    context: string,
+    lineInContext: number,
     isGenerated: boolean
 };
 
@@ -55,7 +63,7 @@ export function identifyVariable(
             dollarPosition = i;
             break;
         }
-        if(line.charAt(i) == ' '){
+        if (line.charAt(i) == ' ') {
             break;
         }
         i--;
@@ -69,7 +77,7 @@ export function identifyVariable(
             endBracketPosition = i;
             break;
         }
-        if(line.charAt(i) == ' '){
+        if (line.charAt(i) == ' ') {
             break;
         }
         i++;
@@ -173,7 +181,7 @@ export async function generateContext(
                         new vscode.Position(i - 1, line.indexOf(variable)),
                         new vscode.Position(i - 1, line.indexOf(variable) + variable.length))
                 };
-                varToPush = unrollVariable(varToPush,context);
+                varToPush = unrollVariable(varToPush, context);
                 context.context.push(varToPush);
             } else {
                 context.context[index].source = document.uri.path;
@@ -215,6 +223,74 @@ export async function generateContext(
 
     return context;
 }
+
+export async function generateContext2(
+    document: vscode.TextDocument,
+    fileContext: FileContext2,
+    tmpFilePath: string
+): Promise<FileContext2> {
+    let i = 0;
+    let line = "";
+    let match;
+    let endingLine: number;
+    let index: number;
+    let variable: string;
+    let value: string;
+    let context = fileContext;
+    const regInc = /include\s+/;
+    const regPW1 = /\$\(PWD\)/;
+    const regPW2 = /\$\(shell\s+pwd\)/;
+    if (document.fileName !== fileContext.endingContext.filePath) {
+        endingLine = document.lineCount;
+    } else {
+        endingLine = fileContext.endingContext.line;
+    }
+
+    while (i < endingLine && context.isGenerated === false) {
+        line = document.lineAt(i).text;
+        i++;
+        if (regInc.test(line)) {
+            let path = includePath(fileContext.source.substring(0, fileContext.source.lastIndexOf('/')), line.replace(regInc, ''));
+            let includeDoc = await vscode.workspace.openTextDocument(path);
+            fs.appendFileSync(tmpFilePath, "###################################"+ path +"###################################\n", "utf-8");
+            context.lineInContext++;
+            context = await generateContext2(includeDoc, context, tmpFilePath);
+        } else {
+            let SPLength = fileContext.source.lastIndexOf("/");
+            let pwd = fileContext.source.substring(0,SPLength); 
+            fs.appendFileSync(tmpFilePath, line.replace(regPW1,pwd).replace(regPW2, pwd)+"\n", "utf-8");
+            context.lineInContext++;
+        }
+    }
+
+    if (document.fileName === fileContext.endingContext.filePath) {
+        context.isGenerated = true;
+    }
+
+    return context;
+}
+
+export async function finishContext(
+    // contextPath: string,
+    // endingContext: EndingContext,
+    // activeDoc: vscode.TextDocument,
+    // makefileVar: MakefileVariable
+
+    contextPath: string,
+    activeDoc: vscode.TextDocument,
+    fileContext: FileContext2,
+    makefileVar: MakefileVariable
+    
+): Promise<string> {
+    let i = 0;
+    fs.appendFileSync(contextPath, "###################################"+ activeDoc.uri.path +"###################################\n", "utf-8");
+    let context = await generateContext2(activeDoc,fileContext, contextPath);
+    fs.appendFileSync(contextPath, "\n\n\n###################################"+ " Makefile Clarifier " +"###################################\n\n", "utf-8");
+    let makefileRecipe = "makefile-clairifier-"+makefileVar.name;
+    fs.appendFileSync(contextPath, "\n"+makefileRecipe+":\n\t@echo "+makefileVar.recipe , "utf-8");
+    return makefileRecipe;
+}
+
 
 /**
  * Identify variable present in a line
@@ -313,11 +389,11 @@ export function matchingIndex(
 export async function findEndingContext(
     documentSource: vscode.TextDocument,
     sourcePath: string
-): Promise<endingContext> {
+): Promise<EndingContext> {
     let docSourcePath = documentSource.uri.path;
     let activeDocPath = vscode.window.activeTextEditor?.document.uri.path;
     let i = 0;
-    let output: endingContext;
+    let output: EndingContext;
     const regInc = /include\s+/;
     while (i < documentSource.lineCount) {
         let line = documentSource.lineAt(i).text;
@@ -330,13 +406,13 @@ export async function findEndingContext(
                     line: i
                 };
             } else {
-                if(fs.existsSync(path)){
+                if (fs.existsSync(path)) {
                     let nextDoc = await vscode.workspace.openTextDocument(vscode.Uri.file(path));
                     let output = await findEndingContext(nextDoc, sourcePath);
                     if (output.line !== -1) {
                         return output;
                     }
-                }  
+                }
             }
         }
         i++;
@@ -354,16 +430,16 @@ export function unrollVariable(
     let unrolledVariable = variable;
     let recipe = unrolledVariable.recipe;
     let regVar = RegExp('\\$\\([\\w]*\\)');
-    while(regVar.exec(recipe) !== null){
+    while (regVar.exec(recipe) !== null) {
         let varName = (regVar.exec(recipe) as RegExpExecArray)[0];
-        let varShort = varName.substring(2,varName.length-1);
+        let varShort = varName.substring(2, varName.length - 1);
         let index = matchingIndex(fileContext, varShort);
-        if(varShort == "PWD"){
-            recipe = recipe.replace(varName,fileContext.source.substring(0,fileContext.source.lastIndexOf("/")));
-        }else if(index !== -1){
-            recipe = recipe.replace(varName,fileContext.context[index].recipe);
-        }else{
-            recipe = recipe.replace(varName,'');
+        if (varShort == "PWD") {
+            recipe = recipe.replace(varName, fileContext.source.substring(0, fileContext.source.lastIndexOf("/")));
+        } else if (index !== -1) {
+            recipe = recipe.replace(varName, fileContext.context[index].recipe);
+        } else {
+            recipe = recipe.replace(varName, '');
             // recipe = recipe.replace(varName,'$(£'+varName.substring(2));
         }
 

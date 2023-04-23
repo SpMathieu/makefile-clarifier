@@ -3,7 +3,7 @@
 import * as vscode from 'vscode';
 import * as mkProvider from './makefile-hover-provider';
 // import VerilogHoverProvider from './verilog-hover-provider';
-
+import * as fs from 'fs';
 import { exec } from 'child_process';
 
 
@@ -14,8 +14,11 @@ export function activate(context: vscode.ExtensionContext) {
 	// This line of code will only be executed once when your extension is activated
 	console.log('Congratulations, hover-provider-sample extension is active!');
 
-
-	let makefileContext = new mkProvider.MakefileContext();
+	const tmpFolderPath = context.extensionPath + "/tmp";
+	if (!fs.existsSync(tmpFolderPath)) {
+		fs.mkdirSync(tmpFolderPath);
+	}
+	let makefileContext = new mkProvider.MakefileContext(tmpFolderPath);
 
 
 	// Update on editor switch.
@@ -34,12 +37,12 @@ export function activate(context: vscode.ExtensionContext) {
 			console.log("");
 		}
 	));
-
+	
 	if (typeof (vscode.window.activeTextEditor) !== undefined) {
 		makefileContext.updateContext();
 	}
 
-	const hoverProvider = new mkProvider.MakefileHoverProvider(makefileContext);
+	const hoverProvider = new mkProvider.MakefileHoverProvider(makefileContext, tmpFolderPath);
 
 	vscode.languages.registerHoverProvider('makefile', hoverProvider);
 }
